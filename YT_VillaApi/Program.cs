@@ -1,6 +1,8 @@
 
+using Microsoft.EntityFrameworkCore;
 using Serilog;
-using YT_VillaApi.Logging;
+using YT_VillaApi.Data;
+
 
 namespace YT_VillaApi
 {
@@ -23,7 +25,10 @@ namespace YT_VillaApi
             // builder.Services.AddSingleton--> created when app starts that object will be used when app requests an implemenation
             //builder.services.AddScoped--> for every request  creates an object
             //builder.Services.AddTransient-->evry time the object acceseed ex-> for 10 requests 10 objects are created and assign that where its needed
-            builder.Services.AddSingleton<ILogging, Logging>();
+            builder.Services.AddDbContext<ApplicationDbContext>(option =>
+            {
+                option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
 
 
             var app = builder.Build();

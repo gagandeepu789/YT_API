@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using YT_VillaApi.Data;
-using YT_VillaApi.Logging;
+
 using YT_VillaApi.Models;
 using YT_VillaApi.Models.Dto;
 
@@ -9,26 +9,27 @@ namespace YT_VillaApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-             
+
     ////////// Get all
     public class VillaApiController : ControllerBase
     {
         //private readonly ILogger<VillaApiController> _logger;
-        private readonly ILogging _logger;
-
-        public VillaApiController(ILogging logger)
+        private readonly ApplicationDbContext _db;
+        public VillaApiController(ApplicationDbContext db)
         {
-            _logger = logger;
+            _db = db;
         }
+
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
 
         public ActionResult<IEnumerable<VillaDTO>> GetVillas()
         {
-            _logger.Log("Getting all villas","");
-            return Ok(VillaStore.villalist);
+            //_logger.Log("Getting all villas","");
+            return Ok(_db.Villas.ToList());
         }
-        [HttpGet("{id:int}",Name ="GetVilla")]
+        [HttpGet("{id:int}", Name = "GetVilla")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -41,10 +42,10 @@ namespace YT_VillaApi.Controllers
         {
             if (id == 0)
             {
-                _logger.Log("get villa  Error with Id" + id,"error");
+                // _logger.Log("get villa  Error with Id" + id,"error");
                 return BadRequest();
             }
-            var villa = VillaStore.villalist.FirstOrDefault(u => u.Id == id);
+            var villa = _db.Villas.FirstOrDefault(u => u.Id == id);
             if (villa == null)
             {
                 return NotFound();
@@ -68,7 +69,7 @@ namespace YT_VillaApi.Controllers
             //{
             //    return BadRequest(ModelState);
             //}
-            if(VillaStore.villalist.FirstOrDefault(u=>u.Name.ToLower()==VillaDTO.Name.ToLower()
+            if (_db.Villas.FirstOrDefault(u => u.Name.ToLower() == VillaDTO.Name.ToLower()
             ) != null)
             {
                 ModelState.AddModelError("", "Villa already exists");
@@ -83,10 +84,24 @@ namespace YT_VillaApi.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
-            VillaDTO.Id = VillaStore.villalist.OrderByDescending(u => u.Id).FirstOrDefault().Id + 1;
-            VillaStore.villalist.Add(VillaDTO);
-            return CreatedAtRoute("GetVilla",new { id = VillaDTO.Id }, VillaDTO);
+            // VillaDTO.Id = VillaStore.villalist.OrderByDescending(u => u.Id).FirstOrDefault().Id + 1;
+
+            Villa model = new()
+            {
+                Id = VillaDTO.Id,
+                Name = VillaDTO.Name,
+                Details = VillaDTO.Details,
+                ImageUrl = VillaDTO.ImageUrl,
+                Occupancy = VillaDTO.Occupancy,
+                Rate = VillaDTO.Rate,
+                sqft = VillaDTO.sqft,
+                Amenity = VillaDTO.Amenity
+            };
+            _db.Villas.Add(model);
+            _db.SaveChanges();
+            return CreatedAtRoute("GetVilla", new {id=VillaDTO.Id},VillaDTO);
         }
+    
 
         /// <summary>
         /// Delete operation
@@ -105,12 +120,13 @@ namespace YT_VillaApi.Controllers
                 return BadRequest(ModelState);
 
             }
-          var villa=VillaStore.villalist.FirstOrDefault(u=>u.Id==id);   
+          var villa=_db.Villas.FirstOrDefault(u=>u.Id==id);   
           if(villa==null)
             {
                 return NotFound();
             }
-          VillaStore.villalist.Remove(villa);
+          _db.Villas.Remove(villa);
+            _db.SaveChanges();
             return NoContent();
         }
         [HttpPut("{id:int}", Name = "UpdateVilla")]
@@ -122,10 +138,23 @@ namespace YT_VillaApi.Controllers
             {
                 return BadRequest();
             }
-            var villa=VillaStore.villalist.FirstOrDefault(u=>u.Id==id);
-            villa.Name = villaDTO.Name;
-            villa.sqft = villaDTO.sqft;
-            villa.Occupancy = villaDTO.Occupancy;
+            //var villa=VillaStore.villalist.FirstOrDefault(u=>u.Id==id);
+            //villa.Name = villaDTO.Name;
+            //villa.sqft = villaDTO.sqft;
+            //villa.Occupancy = villaDTO.Occupancy;
+            Villa model = new()
+            {
+                Id=villaDTO.Id,
+                Name = villaDTO.Name,
+                Details = villaDTO.Details,
+                ImageUrl = villaDTO.ImageUrl,
+                Occupancy = villaDTO.Occupancy,
+                Rate = villaDTO.Rate,
+                sqft = villaDTO.sqft,
+                Amenity = villaDTO.Amenity
+            };
+            _db.Villas.Update(model);
+            _db.SaveChanges();
             return NoContent();
         }
     }
